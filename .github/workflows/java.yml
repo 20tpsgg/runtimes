@@ -90,7 +90,7 @@ jobs:
           JAVA_MAJOR: ${{ matrix.java }}
         run: echo "Java ${JAVA_MAJOR} unchanged; build, runtime tests and publication skipped." >> "$GITHUB_STEP_SUMMARY"
 
-      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-qemu-action@v4
         if: steps.changes.outputs.build == 'true' && matrix.arm64
 
       - name: Build amd64 test image with fresh OS packages

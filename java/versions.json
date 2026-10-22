@@ -1,0 +1,343 @@
+{
+  "latest_ga": 27,
+  "versions": [
+    {
+      "major": 8,
+      "vendor": "Temurin",
+      "support": "lts",
+      "dockerfile": "java/Dockerfile",
+      "base_image": "eclipse-temurin:8-jdk-noble",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "minimum_version": "1.8.0.512"
+    },
+    {
+      "major": 9,
+      "vendor": "Zulu",
+      "support": "eol",
+      "dockerfile": "java/Dockerfile.archive",
+      "base_image": "ubuntu:24.04",
+      "architectures": [
+        "amd64"
+      ],
+      "archives": {
+        "amd64": {
+          "url": "https://cdn.azul.com/zulu/bin/zulu9.0.7.1-ca-jdk9.0.7-linux_x64.tar.gz",
+          "sha256": "45f2dfbee93b91b1468cf81d843fc6d9a47fef1f831c0b7ceff4f1eb6e6851c8",
+          "version": "9.0.7",
+          "source": "https://api.azul.com/metadata/v1/zulu/packages/6dbd72d6-dd4c-11ea-a8fe-fa163ed8e833"
+        }
+      }
+    },
+    {
+      "major": 10,
+      "vendor": "Zulu",
+      "support": "eol",
+      "dockerfile": "java/Dockerfile.archive",
+      "base_image": "ubuntu:24.04",
+      "architectures": [
+        "amd64"
+      ],
+      "archives": {
+        "amd64": {
+          "url": "https://cdn.azul.com/zulu/bin/zulu10.3.5-ca-jdk10.0.2-linux_x64.tar.gz",
+          "sha256": "47ef4b708689f1923a2be9325b17c9df8545a33769a7f11b00dc70f0be4f12ca",
+          "version": "10.0.2",
+          "source": "https://api.azul.com/metadata/v1/zulu/packages/6dbf9edb-dd4c-11ea-a8fe-fa163ed8e833"
+        }
+      }
+    },
+    {
+      "major": 11,
+      "vendor": "Temurin",
+      "support": "lts",
+      "dockerfile": "java/Dockerfile",
+      "base_image": "eclipse-temurin:11-jdk-noble",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "minimum_version": "11.0.33"
+    },
+    {
+      "major": 12,
+      "vendor": "Zulu",
+      "support": "eol",
+      "dockerfile": "java/Dockerfile.archive",
+      "base_image": "ubuntu:24.04",
+      "architectures": [
+        "amd64"
+      ],
+      "archives": {
+        "amd64": {
+          "url": "https://cdn.azul.com/zulu/bin/zulu12.3.11-ca-jdk12.0.2-linux_x64.tar.gz",
+          "sha256": "660cacbed777b5f9048b1a2d6640422ca5921eddea086bc62cb78e9e453ae994",
+          "version": "12.0.2",
+          "source": "https://api.azul.com/metadata/v1/zulu/packages/6f64f85f-dd4c-11ea-a8fe-fa163ed8e833"
+        }
+      }
+    },
+    {
+      "major": 13,
+      "vendor": "Zulu",
+      "support": "eol",
+      "dockerfile": "java/Dockerfile.archive",
+      "base_image": "ubuntu:24.04",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "archives": {
+        "amd64": {
+          "url": "https://cdn.azul.com/zulu/bin/zulu13.54.17-ca-jdk13.0.14-linux_x64.tar.gz",
+          "sha256": "65889cb4cf41d823351a16c57e0870b8ab0f2cf1d41877254201780d484e5ded",
+          "version": "13.0.14",
+          "source": "https://api.azul.com/metadata/v1/zulu/packages/df479c68-9d61-49ae-aec8-d6aedbc8d2ac"
+        },
+        "arm64": {
+          "url": "https://cdn.azul.com/zulu/bin/zulu13.54.17-ca-jdk13.0.14-linux_aarch64.tar.gz",
+          "sha256": "5f1455f0d6541be97e406330114b462f59c2993581b3b87e391838f156b11d8a",
+          "version": "13.0.14",
+          "source": "https://api.azul.com/metadata/v1/zulu/packages/fac0486a-0fad-411b-be47-54002d0fdcb3"
+        }
+      }
+    },
+    {
+      "major": 14,
+      "vendor": "Zulu",
+      "support": "eol",
+      "dockerfile": "java/Dockerfile.archive",
+      "base_image": "ubuntu:24.04",
+      "architectures": [
+        "amd64"
+      ],
+      "archives": {
+        "amd64": {
+          "url": "https://cdn.azul.com/zulu/bin/zulu14.29.23-ca-jdk14.0.2-linux_x64.tar.gz",
+          "sha256": "7f4310a98ea0e52bacbec389012d859dbb51e759fe35a2cfebb11300271872d2",
+          "version": "14.0.2",
+          "source": "https://api.azul.com/metadata/v1/zulu/packages/716cce87-dd4c-11ea-a8fe-fa163ed8e833"
+        }
+      }
+    },
+    {
+      "major": 15,
+      "vendor": "Zulu",
+      "support": "eol",
+      "dockerfile": "java/Dockerfile.archive",
+      "base_image": "ubuntu:24.04",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "archives": {
+        "amd64": {
+          "url": "https://cdn.azul.com/zulu/bin/zulu15.46.17-ca-jdk15.0.10-linux_x64.tar.gz",
+          "sha256": "278e6f8529a0047efbc7475388fa23dee247af3e301b00f1dc9c430795ba6fe1",
+          "version": "15.0.10",
+          "source": "https://api.azul.com/metadata/v1/zulu/packages/87137c75-6844-474c-a03d-717ca45fddfd"
+        },
+        "arm64": {
+          "url": "https://cdn.azul.com/zulu/bin/zulu15.46.17-ca-jdk15.0.10-linux_aarch64.tar.gz",
+          "sha256": "109786f797c5b2d7841f394a3bc919b50a1ed9d24a3f2b5fbb2f1260dff72918",
+          "version": "15.0.10",
+          "source": "https://api.azul.com/metadata/v1/zulu/packages/0fe39519-c4c1-4f20-b50a-34c2d78706a0"
+        }
+      }
+    },
+    {
+      "major": 16,
+      "vendor": "Temurin",
+      "support": "eol",
+      "dockerfile": "java/Dockerfile.archive",
+      "base_image": "ubuntu:24.04",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "archives": {
+        "amd64": {
+          "url": "https://github.com/adoptium/temurin16-binaries/releases/download/jdk-16.0.2%2B7/OpenJDK16U-jdk_x64_linux_hotspot_16.0.2_7.tar.gz",
+          "sha256": "323d6d7474a359a28eff7ddd0df8e65bd61554a8ed12ef42fd9365349e573c2c",
+          "version": "16.0.2+7",
+          "source": "https://api.adoptium.net/v3/assets/latest/16/hotspot?architecture=x64&image_type=jdk&os=linux&vendor=eclipse"
+        },
+        "arm64": {
+          "url": "https://github.com/adoptium/temurin16-binaries/releases/download/jdk-16.0.2%2B7/OpenJDK16U-jdk_aarch64_linux_hotspot_16.0.2_7.tar.gz",
+          "sha256": "cb77d9d126f97898dfdc8b5fb694d1e0e5d93d13a0a6cb2aeda76f8635384340",
+          "version": "16.0.2+7",
+          "source": "https://api.adoptium.net/v3/assets/latest/16/hotspot?architecture=aarch64&image_type=jdk&os=linux&vendor=eclipse"
+        }
+      }
+    },
+    {
+      "major": 17,
+      "vendor": "Temurin",
+      "support": "lts",
+      "dockerfile": "java/Dockerfile",
+      "base_image": "eclipse-temurin:17-jdk-noble",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "minimum_version": "17.0.21"
+    },
+    {
+      "major": 18,
+      "vendor": "Temurin",
+      "support": "eol",
+      "dockerfile": "java/Dockerfile.archive",
+      "base_image": "ubuntu:24.04",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "archives": {
+        "amd64": {
+          "url": "https://github.com/adoptium/temurin18-binaries/releases/download/jdk-18.0.2.1%2B1/OpenJDK18U-jdk_x64_linux_hotspot_18.0.2.1_1.tar.gz",
+          "sha256": "7d6beba8cfc0a8347f278f7414351191a95a707d46b6586e9a786f2669af0f8b",
+          "version": "18.0.2+101",
+          "source": "https://api.adoptium.net/v3/assets/latest/18/hotspot?architecture=x64&image_type=jdk&os=linux&vendor=eclipse"
+        },
+        "arm64": {
+          "url": "https://github.com/adoptium/temurin18-binaries/releases/download/jdk-18.0.2.1%2B1/OpenJDK18U-jdk_aarch64_linux_hotspot_18.0.2.1_1.tar.gz",
+          "sha256": "262be608e266fd76d7496af83b2832be853c3aaf7460d6a4da198cd40db74553",
+          "version": "18.0.2+101",
+          "source": "https://api.adoptium.net/v3/assets/latest/18/hotspot?architecture=aarch64&image_type=jdk&os=linux&vendor=eclipse"
+        }
+      }
+    },
+    {
+      "major": 19,
+      "vendor": "Temurin",
+      "support": "eol",
+      "dockerfile": "java/Dockerfile.archive",
+      "base_image": "ubuntu:24.04",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "archives": {
+        "amd64": {
+          "url": "https://github.com/adoptium/temurin19-binaries/releases/download/jdk-19.0.2%2B7/OpenJDK19U-jdk_x64_linux_hotspot_19.0.2_7.tar.gz",
+          "sha256": "3a3ba7a3f8c3a5999e2c91ea1dca843435a0d1c43737bd2f6822b2f02fc52165",
+          "version": "19.0.2+7",
+          "source": "https://api.adoptium.net/v3/assets/latest/19/hotspot?architecture=x64&image_type=jdk&os=linux&vendor=eclipse"
+        },
+        "arm64": {
+          "url": "https://github.com/adoptium/temurin19-binaries/releases/download/jdk-19.0.2%2B7/OpenJDK19U-jdk_aarch64_linux_hotspot_19.0.2_7.tar.gz",
+          "sha256": "1c4be9aa173cb0deb0d215643d9509c8900e5497290b29eee4bee335fa57984f",
+          "version": "19.0.2+7",
+          "source": "https://api.adoptium.net/v3/assets/latest/19/hotspot?architecture=aarch64&image_type=jdk&os=linux&vendor=eclipse"
+        }
+      }
+    },
+    {
+      "major": 20,
+      "vendor": "Temurin",
+      "support": "eol",
+      "dockerfile": "java/Dockerfile.archive",
+      "base_image": "ubuntu:24.04",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "archives": {
+        "amd64": {
+          "url": "https://github.com/adoptium/temurin20-binaries/releases/download/jdk-20.0.2%2B9/OpenJDK20U-jdk_x64_linux_hotspot_20.0.2_9.tar.gz",
+          "sha256": "3d91842e9c172967ac397076523249d05a82ead51b0006838f5f0315ad52222c",
+          "version": "20.0.2+9",
+          "source": "https://api.adoptium.net/v3/assets/latest/20/hotspot?architecture=x64&image_type=jdk&os=linux&vendor=eclipse"
+        },
+        "arm64": {
+          "url": "https://github.com/adoptium/temurin20-binaries/releases/download/jdk-20.0.2%2B9/OpenJDK20U-jdk_aarch64_linux_hotspot_20.0.2_9.tar.gz",
+          "sha256": "b475bcc23db0bd618c815bb8f11d8e084dc58288ea3bcdf4e7f389ed41c89f56",
+          "version": "20.0.2+9",
+          "source": "https://api.adoptium.net/v3/assets/latest/20/hotspot?architecture=aarch64&image_type=jdk&os=linux&vendor=eclipse"
+        }
+      }
+    },
+    {
+      "major": 21,
+      "vendor": "Temurin",
+      "support": "lts",
+      "dockerfile": "java/Dockerfile",
+      "base_image": "eclipse-temurin:21-jdk-noble",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "minimum_version": "21.0.13"
+    },
+    {
+      "major": 22,
+      "vendor": "Temurin",
+      "support": "eol",
+      "dockerfile": "java/Dockerfile",
+      "base_image": "eclipse-temurin:22-jdk-noble",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ]
+    },
+    {
+      "major": 23,
+      "vendor": "Temurin",
+      "support": "eol",
+      "dockerfile": "java/Dockerfile",
+      "base_image": "eclipse-temurin:23-jdk-noble",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ]
+    },
+    {
+      "major": 24,
+      "vendor": "Temurin",
+      "support": "eol",
+      "dockerfile": "java/Dockerfile",
+      "base_image": "eclipse-temurin:24-jdk-noble",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ]
+    },
+    {
+      "major": 25,
+      "vendor": "Temurin",
+      "support": "lts",
+      "dockerfile": "java/Dockerfile",
+      "base_image": "eclipse-temurin:25-jdk-noble",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "minimum_version": "25.0.5"
+    },
+    {
+      "major": 26,
+      "vendor": "Temurin",
+      "support": "eol",
+      "dockerfile": "java/Dockerfile",
+      "base_image": "eclipse-temurin:26-jdk-noble",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ]
+    },
+    {
+      "major": 27,
+      "vendor": "Temurin",
+      "support": "current",
+      "dockerfile": "java/Dockerfile",
+      "base_image": "eclipse-temurin:27-jdk",
+      "architectures": [
+        "amd64",
+        "arm64"
+      ],
+      "minimum_version": "27.0.1"
+    }
+  ]
+}

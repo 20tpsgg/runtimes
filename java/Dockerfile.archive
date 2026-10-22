@@ -1,0 +1,50 @@
+# syntax=docker/dockerfile:1.7
+
+# Older JDKs run on a maintained OS instead of their retired vendor image's OS.
+ARG BASE_IMAGE=ubuntu:24.04
+FROM ${BASE_IMAGE}
+
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get upgrade -y \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        bash ca-certificates curl fontconfig git iproute2 jq \
+        libfreetype6 libstdc++6 lsof openssl sqlite3 tar tzdata unzip \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --gid 988 container \
+    && useradd --uid 988 --gid 988 --home-dir /home/container \
+        --create-home --shell /bin/bash container
+
+ARG TARGETARCH
+ARG JAVA_MAJOR
+ARG BASE_IMAGE
+ARG REVISION=local
+ARG JAVA_SUPPORT=eol
+ARG JDK_VENDOR
+ARG MINIMUM_JAVA_VERSION
+
+LABEL org.opencontainers.image.title="20tps Java runtime" \
+      org.opencontainers.image.description="Archived Java runtime for compatibility requests; JDK security support has ended" \
+      org.opencontainers.image.source="https://github.com/20tpsgg/runtimes" \
+      org.opencontainers.image.revision="${REVISION}" \
+      org.opencontainers.image.base.name="${BASE_IMAGE}" \
+      gg.20tps.java.major="${JAVA_MAJOR}" \
+      gg.20tps.java.support="${JAVA_SUPPORT}" \
+      gg.20tps.java.vendor="${JDK_VENDOR}"
+
+ENV JAVA_HOME=/opt/java/openjdk \
+    PATH=/opt/java/openjdk/bin:$PATH
+
+COPY java/versions.json /usr/local/share/20tps/versions.json
+COPY --chmod=755 java/install-archive.sh /usr/local/bin/20tps-install-archive
+RUN /usr/local/bin/20tps-install-archive
+
+COPY --chmod=755 java/entrypoint.sh /entrypoint.sh
+
+ENV USER=container \
+    HOME=/home/container \
+    TZ=UTC
+
+USER 988:988
+WORKDIR /home/container
+
+CMD ["/bin/bash", "/entrypoint.sh"]

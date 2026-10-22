@@ -1,0 +1,7 @@
+**
+!java/
+!java/Dockerfile
+!java/Dockerfile.archive
+!java/entrypoint.sh
+!java/install-archive.sh
+!java/versions.json

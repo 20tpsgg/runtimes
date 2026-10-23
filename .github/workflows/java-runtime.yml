@@ -21,7 +21,7 @@ jobs:
       architectures: ${{ steps.release.outputs.architectures }}
       build: ${{ steps.changes.outputs.build }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: docker/setup-buildx-action@v3
       - name: Resolve one base digest for both architectures
         id: release
@@ -82,7 +82,7 @@ jobs:
       matrix:
         architecture: ${{ fromJSON(needs.prepare.outputs.architectures) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: docker/setup-buildx-action@v3
       - name: Build the native test image with fresh OS packages
         uses: docker/build-push-action@v6
@@ -150,7 +150,7 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: docker/setup-buildx-action@v3
       - uses: actions/download-artifact@v4
         with:

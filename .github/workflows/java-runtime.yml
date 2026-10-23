@@ -48,7 +48,7 @@ jobs:
 
       - name: Restore the last successful publication
         if: github.event_name == 'schedule'
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: .build-state
           key: java-state-v1-${{ fromJSON(inputs.runtime).java }}-${{ github.run_id }}-${{ github.run_attempt }}
@@ -215,7 +215,7 @@ jobs:
             --platforms "$PLATFORMS" --digest "$DIGEST"
 
       - name: Cache only the successfully published state
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@v6
         with:
           path: .build-state
           key: java-state-v1-${{ fromJSON(inputs.runtime).java }}-${{ github.run_id }}-${{ github.run_attempt }}

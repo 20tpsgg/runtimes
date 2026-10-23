@@ -1,0 +1,221 @@
+name: Build a Java runtime
+
+on:
+  workflow_call:
+    inputs:
+      runtime:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    outputs:
+      base: ${{ steps.release.outputs.base }}
+      fingerprint: ${{ steps.release.outputs.fingerprint }}
+      image: ${{ steps.release.outputs.image }}
+      tag: ${{ steps.release.outputs.tag }}
+      architectures: ${{ steps.release.outputs.architectures }}
+      build: ${{ steps.changes.outputs.build }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Resolve one base digest for both architectures
+        id: release
+        env:
+          JAVA_MAJOR: ${{ fromJSON(inputs.runtime).java }}
+          BASE_NAME: ${{ fromJSON(inputs.runtime).base }}
+          BUILD_ARM64: ${{ fromJSON(inputs.runtime).arm64 }}
+          SOURCE_HASH: ${{ hashFiles('java/**', 'scripts/**', 'tests/**', '.dockerignore', '.github/workflows/java*.yml') }}
+        run: |
+          digest="$(docker buildx imagetools inspect "$BASE_NAME" --format '{{.Manifest.Digest}}')"
+          [[ "$digest" =~ ^sha256:[a-f0-9]{64}$ ]]
+          fingerprint=$(printf '%s\n%s\n' "${BASE_NAME}@${digest}" "$SOURCE_HASH" | sha256sum | cut -d ' ' -f 1)
+          {
+            echo "base=${BASE_NAME}@${digest}"
+            echo "fingerprint=$fingerprint"
+            echo "image=ghcr.io/${GITHUB_REPOSITORY,,}"
+            echo "tag=java_${JAVA_MAJOR}-$(date -u +%Y%m%d)-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${GITHUB_SHA:0:12}"
+            if [[ "$BUILD_ARM64" == true ]]; then
+              echo 'architectures=["amd64","arm64"]'
+            else
+              echo 'architectures=["amd64"]'
+            fi
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Restore the last successful publication
+        if: github.event_name == 'schedule'
+        uses: actions/cache/restore@v5
+        with:
+          path: .build-state
+          key: java-state-v1-${{ fromJSON(inputs.runtime).java }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: java-state-v1-${{ fromJSON(inputs.runtime).java }}-
+
+      - name: Check whether this runtime needs a build
+        id: changes
+        env:
+          FINGERPRINT: ${{ steps.release.outputs.fingerprint }}
+          PLATFORMS: ${{ fromJSON(inputs.runtime).platforms }}
+        run: |
+          python3 scripts/build-state.py check --fingerprint "$FINGERPRINT" \
+            --platforms "$PLATFORMS" --event "$GITHUB_EVENT_NAME" --github-output "$GITHUB_OUTPUT"
+
+      - name: Record an unchanged scheduled runtime
+        if: steps.changes.outputs.build == 'false'
+        env:
+          JAVA_MAJOR: ${{ fromJSON(inputs.runtime).java }}
+        run: echo "Java ${JAVA_MAJOR} unchanged; build, runtime tests and publication skipped." >> "$GITHUB_STEP_SUMMARY"
+
+  build:
+    needs: prepare
+    if: needs.prepare.outputs.build == 'true'
+    runs-on: ${{ matrix.architecture == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        architecture: ${{ fromJSON(needs.prepare.outputs.architectures) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build the native test image with fresh OS packages
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ fromJSON(inputs.runtime).dockerfile }}
+          platforms: linux/${{ matrix.architecture }}
+          pull: true
+          no-cache: true
+          load: true
+          tags: runtime-test:${{ matrix.architecture }}
+          build-args: |
+            BASE_IMAGE=${{ needs.prepare.outputs.base }}
+            JAVA_MAJOR=${{ fromJSON(inputs.runtime).java }}
+            MINIMUM_JAVA_VERSION=${{ fromJSON(inputs.runtime).minimum_version }}
+            REVISION=${{ github.sha }}
+            JAVA_SUPPORT=${{ fromJSON(inputs.runtime).support }}
+            JDK_VENDOR=${{ fromJSON(inputs.runtime).vendor }}
+
+      - name: Test the native JVM, forked agent and shutdown
+        env:
+          ARCHITECTURE: ${{ matrix.architecture }}
+          JAVA_MAJOR: ${{ fromJSON(inputs.runtime).java }}
+        run: python3 tests/runtime_smoke.py "runtime-test:${ARCHITECTURE}" "$JAVA_MAJOR" --platform "linux/${ARCHITECTURE}"
+
+      - name: Snapshot the tested package state
+        env:
+          ARCHITECTURE: ${{ matrix.architecture }}
+        run: python3 scripts/build-state.py snapshot --image "runtime-test:${ARCHITECTURE}" --platforms "linux/${ARCHITECTURE}"
+
+      - name: Log in for publication from master
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish the exact tested image
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
+        env:
+          IMAGE: ${{ needs.prepare.outputs.image }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+          ARCHITECTURE: ${{ matrix.architecture }}
+        run: |
+          docker tag "runtime-test:${ARCHITECTURE}" "${IMAGE}:${TAG}-${ARCHITECTURE}"
+          docker push "${IMAGE}:${TAG}-${ARCHITECTURE}"
+
+      - name: Pass the tested package state to publication
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ needs.prepare.outputs.tag }}-${{ matrix.architecture }}-state
+          path: .build-state/
+          include-hidden-files: true
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 7
+
+  publish:
+    needs: [prepare, build]
+    if: needs.prepare.outputs.build == 'true' && github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: ${{ needs.prepare.outputs.tag }}-*-state
+          path: .build-state
+          merge-multiple: true
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish the tested multi-platform release
+        id: publish
+        env:
+          IMAGE: ${{ needs.prepare.outputs.image }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+          BUILD_ARM64: ${{ fromJSON(inputs.runtime).arm64 }}
+        run: |
+          sources=("${IMAGE}:${TAG}-amd64")
+          if [[ "$BUILD_ARM64" == true ]]; then
+            sources+=("${IMAGE}:${TAG}-arm64")
+          fi
+          docker buildx imagetools create --tag "${IMAGE}:${TAG}" "${sources[@]}"
+          digest="$(docker buildx imagetools inspect "${IMAGE}:${TAG}" --format '{{.Manifest.Digest}}')"
+          [[ "$digest" =~ ^sha256:[a-f0-9]{64}$ ]]
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+
+      - name: Require public access without credentials
+        env:
+          DIGEST: ${{ steps.publish.outputs.digest }}
+        run: python3 scripts/check-public-image.py "$GITHUB_REPOSITORY" "$DIGEST"
+
+      - name: Promote the public major-version alias
+        env:
+          IMAGE: ${{ needs.prepare.outputs.image }}
+          DIGEST: ${{ steps.publish.outputs.digest }}
+          JAVA_MAJOR: ${{ fromJSON(inputs.runtime).java }}
+          RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+          BASE_IMAGE: ${{ needs.prepare.outputs.base }}
+          PLATFORMS: ${{ fromJSON(inputs.runtime).platforms }}
+          JAVA_SUPPORT: ${{ fromJSON(inputs.runtime).support }}
+        run: |
+          docker buildx imagetools create --tag "${IMAGE}:java_${JAVA_MAJOR}" "${IMAGE}@${DIGEST}"
+          {
+            echo "### Java ${JAVA_MAJOR}"
+            echo "- Release: ${IMAGE}:${RELEASE_TAG}"
+            echo "- Production reference: ${IMAGE}@${DIGEST}"
+            echo "- Base: ${BASE_IMAGE}"
+            echo "- JDK support status: ${JAVA_SUPPORT}"
+            echo "- Anonymous pull verified; natively tested platforms: ${PLATFORMS}."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Mark the successful public publication
+        env:
+          FINGERPRINT: ${{ needs.prepare.outputs.fingerprint }}
+          PLATFORMS: ${{ fromJSON(inputs.runtime).platforms }}
+          DIGEST: ${{ steps.publish.outputs.digest }}
+        run: |
+          python3 scripts/build-state.py published --fingerprint "$FINGERPRINT" \
+            --platforms "$PLATFORMS" --digest "$DIGEST"
+
+      - name: Cache only the successfully published state
+        uses: actions/cache/save@v5
+        with:
+          path: .build-state
+          key: java-state-v1-${{ fromJSON(inputs.runtime).java }}-${{ github.run_id }}-${{ github.run_attempt }}

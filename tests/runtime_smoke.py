@@ -3,8 +3,10 @@
 
 import argparse
 import json
+import os
 from pathlib import Path
 import subprocess
+import sys
 import time
 import uuid
 
@@ -86,4 +88,10 @@ exec "$@"
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except (RuntimeError, subprocess.TimeoutExpired) as error:
+        if os.environ.get("GITHUB_ACTIONS") == "true":
+            message = str(error)[-16000:].replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+            print("::error title=Runtime smoke test failed::" + message, file=sys.stderr)
+        raise

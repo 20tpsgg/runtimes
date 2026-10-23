@@ -3,9 +3,9 @@ name: Java runtimes
 on:
   push:
     branches: [master]
-    paths: ['java/**', 'scripts/**', 'tests/**', '.dockerignore', '.github/workflows/java.yml']
+    paths: ['java/**', 'scripts/**', 'tests/**', '.dockerignore', '.github/workflows/java*.yml']
   pull_request:
-    paths: ['java/**', 'scripts/**', 'tests/**', '.dockerignore', '.github/workflows/java.yml']
+    paths: ['java/**', 'scripts/**', 'tests/**', '.dockerignore', '.github/workflows/java*.yml']
   schedule:
     - cron: '23 4 * * *'
   workflow_dispatch:
@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   checks:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       matrix: ${{ steps.catalog.outputs.matrix }}
     steps:
@@ -36,8 +36,6 @@ jobs:
 
   java:
     needs: checks
-    runs-on: ubuntu-latest
-    timeout-minutes: 40
     permissions:
       contents: read
       packages: write
@@ -45,179 +43,6 @@ jobs:
       fail-fast: false
       max-parallel: 4
       matrix: ${{ fromJSON(needs.checks.outputs.matrix) }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-
-      - name: Resolve the base digest for the available architectures
-        id: release
-        env:
-          JAVA_MAJOR: ${{ matrix.java }}
-          BASE_NAME: ${{ matrix.base }}
-          SOURCE_HASH: ${{ hashFiles('java/**', 'scripts/**', 'tests/**', '.dockerignore', '.github/workflows/java.yml') }}
-        run: |
-          base="$BASE_NAME"
-          digest="$(docker buildx imagetools inspect "$base" --format '{{.Manifest.Digest}}')"
-          [[ "$digest" =~ ^sha256:[a-f0-9]{64}$ ]]
-          fingerprint=$(printf '%s\n%s\n' "${base}@${digest}" "$SOURCE_HASH" | sha256sum | cut -d ' ' -f 1)
-          {
-            echo "base=${base}@${digest}"
-            echo "fingerprint=$fingerprint"
-            echo "image=ghcr.io/${GITHUB_REPOSITORY,,}"
-            echo "tag=java_${JAVA_MAJOR}-$(date -u +%Y%m%d)-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${GITHUB_SHA:0:12}"
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Restore the last successful publication
-        if: github.event_name == 'schedule'
-        uses: actions/cache/restore@v5
-        with:
-          path: .build-state
-          key: java-state-v1-${{ matrix.java }}-${{ github.run_id }}-${{ github.run_attempt }}
-          restore-keys: java-state-v1-${{ matrix.java }}-
-
-      - name: Check whether this runtime needs a build
-        id: changes
-        env:
-          FINGERPRINT: ${{ steps.release.outputs.fingerprint }}
-          PLATFORMS: ${{ matrix.platforms }}
-        run: |
-          python3 scripts/build-state.py check --fingerprint "$FINGERPRINT" \
-            --platforms "$PLATFORMS" --event "$GITHUB_EVENT_NAME" --github-output "$GITHUB_OUTPUT"
-
-      - name: Record an unchanged scheduled runtime
-        if: steps.changes.outputs.build == 'false'
-        env:
-          JAVA_MAJOR: ${{ matrix.java }}
-        run: echo "Java ${JAVA_MAJOR} unchanged; build, runtime tests and publication skipped." >> "$GITHUB_STEP_SUMMARY"
-
-      - uses: docker/setup-qemu-action@v3
-        if: steps.changes.outputs.build == 'true' && matrix.arm64
-
-      - name: Build amd64 test image with fresh OS packages
-        if: steps.changes.outputs.build == 'true'
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ${{ matrix.dockerfile }}
-          platforms: linux/amd64
-          pull: true
-          no-cache: true
-          load: true
-          tags: runtime-test:amd64
-          build-args: |
-            BASE_IMAGE=${{ steps.release.outputs.base }}
-            JAVA_MAJOR=${{ matrix.java }}
-            MINIMUM_JAVA_VERSION=${{ matrix.minimum_version }}
-            REVISION=${{ github.sha }}
-            JAVA_SUPPORT=${{ matrix.support }}
-            JDK_VENDOR=${{ matrix.vendor }}
-
-      - name: Test amd64 JVM, forked agent and shutdown
-        if: steps.changes.outputs.build == 'true'
-        run: python3 tests/runtime_smoke.py runtime-test:amd64 ${{ matrix.java }} --platform linux/amd64
-
-      - name: Snapshot the tested amd64 package state
-        if: steps.changes.outputs.build == 'true'
-        run: python3 scripts/build-state.py snapshot --image runtime-test:amd64 --platforms linux/amd64
-
-      - name: Build arm64 test image with fresh OS packages
-        if: steps.changes.outputs.build == 'true' && matrix.arm64
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ${{ matrix.dockerfile }}
-          platforms: linux/arm64
-          pull: true
-          no-cache: true
-          load: true
-          tags: runtime-test:arm64
-          build-args: |
-            BASE_IMAGE=${{ steps.release.outputs.base }}
-            JAVA_MAJOR=${{ matrix.java }}
-            MINIMUM_JAVA_VERSION=${{ matrix.minimum_version }}
-            REVISION=${{ github.sha }}
-            JAVA_SUPPORT=${{ matrix.support }}
-            JDK_VENDOR=${{ matrix.vendor }}
-
-      - name: Test arm64 JVM, forked agent and shutdown
-        if: steps.changes.outputs.build == 'true' && matrix.arm64
-        run: python3 tests/runtime_smoke.py runtime-test:arm64 ${{ matrix.java }} --platform linux/arm64
-
-      - name: Snapshot the tested arm64 package state
-        if: steps.changes.outputs.build == 'true' && matrix.arm64
-        run: python3 scripts/build-state.py snapshot --image runtime-test:arm64 --platforms linux/arm64
-
-      - name: Log in for publication from master
-        if: steps.changes.outputs.build == 'true' && github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      # Push the exact images tested above. Do not rebuild between test and push.
-      - name: Publish tested images and multi-platform release
-        id: publish
-        if: steps.changes.outputs.build == 'true' && github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
-        env:
-          IMAGE: ${{ steps.release.outputs.image }}
-          TAG: ${{ steps.release.outputs.tag }}
-          BUILD_ARM64: ${{ matrix.arm64 }}
-        run: |
-          docker tag runtime-test:amd64 "${IMAGE}:${TAG}-amd64"
-          docker push "${IMAGE}:${TAG}-amd64"
-          sources=("${IMAGE}:${TAG}-amd64")
-          if [[ "$BUILD_ARM64" == true ]]; then
-            docker tag runtime-test:arm64 "${IMAGE}:${TAG}-arm64"
-            docker push "${IMAGE}:${TAG}-arm64"
-            sources+=("${IMAGE}:${TAG}-arm64")
-          fi
-          docker buildx imagetools create --tag "${IMAGE}:${TAG}" "${sources[@]}"
-          digest="$(docker buildx imagetools inspect "${IMAGE}:${TAG}" --format '{{.Manifest.Digest}}')"
-          [[ "$digest" =~ ^sha256:[a-f0-9]{64}$ ]]
-          echo "digest=$digest" >> "$GITHUB_OUTPUT"
-
-      - name: Require public access without credentials
-        if: steps.publish.outcome == 'success'
-        env:
-          DIGEST: ${{ steps.publish.outputs.digest }}
-        run: python3 scripts/check-public-image.py "$GITHUB_REPOSITORY" "$DIGEST"
-
-      - name: Promote the public major-version alias
-        id: promote
-        if: steps.publish.outcome == 'success'
-        env:
-          IMAGE: ${{ steps.release.outputs.image }}
-          DIGEST: ${{ steps.publish.outputs.digest }}
-          JAVA_MAJOR: ${{ matrix.java }}
-          RELEASE_TAG: ${{ steps.release.outputs.tag }}
-          BASE_IMAGE: ${{ steps.release.outputs.base }}
-          PLATFORMS: ${{ matrix.platforms }}
-          JAVA_SUPPORT: ${{ matrix.support }}
-        run: |
-          docker buildx imagetools create --tag "${IMAGE}:java_${JAVA_MAJOR}" "${IMAGE}@${DIGEST}"
-          {
-            echo "### Java ${JAVA_MAJOR}"
-            echo "- Release: ${IMAGE}:${RELEASE_TAG}"
-            echo "- Production reference: ${IMAGE}@${DIGEST}"
-            echo "- Base: ${BASE_IMAGE}"
-            echo "- JDK support status: ${JAVA_SUPPORT}"
-            echo "- Anonymous pull verified; tested platforms: ${PLATFORMS}."
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Mark the successful public publication
-        if: steps.promote.outcome == 'success'
-        env:
-          FINGERPRINT: ${{ steps.release.outputs.fingerprint }}
-          PLATFORMS: ${{ matrix.platforms }}
-          DIGEST: ${{ steps.publish.outputs.digest }}
-        run: |
-          python3 scripts/build-state.py published --fingerprint "$FINGERPRINT" \
-            --platforms "$PLATFORMS" --digest "$DIGEST"
-
-      - name: Cache only the successfully published state
-        if: steps.promote.outcome == 'success'
-        uses: actions/cache/save@v5
-        with:
-          path: .build-state
-          key: java-state-v1-${{ matrix.java }}-${{ github.run_id }}-${{ github.run_attempt }}
+    uses: ./.github/workflows/java-runtime.yml
+    with:
+      runtime: ${{ toJSON(matrix) }}

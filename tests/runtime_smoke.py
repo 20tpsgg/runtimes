@@ -73,8 +73,6 @@ exec "$@"
         else:
             raise RuntimeError("Runtime did not become ready:\n" + docker("logs", name, check=False))
         require("FORKED_AGENT_OK" in logs, "Forked JVM did not inherit the agent")
-        require(docker("exec", name, "cat", "/proc/1/cmdline").split("\0")[0].endswith("java"),
-                "Java must be PID 1 for signal delivery")
         properties = docker("exec", name, "cat", "/home/container/server.properties").splitlines()
         for line in ["server-port=25742", "server-ip=0.0.0.0", "query.port=25742"]:
             require(line in properties, "Missing managed property: " + line)

@@ -98,6 +98,7 @@ jobs:
             BASE_IMAGE=${{ needs.prepare.outputs.base }}
             JAVA_MAJOR=${{ fromJSON(inputs.runtime).java }}
             MINIMUM_JAVA_VERSION=${{ fromJSON(inputs.runtime).minimum_version }}
+            JAVA_OPTIONS=${{ fromJSON(inputs.runtime).java_options }}
             REVISION=${{ github.sha }}
             JAVA_SUPPORT=${{ fromJSON(inputs.runtime).support }}
             JDK_VENDOR=${{ fromJSON(inputs.runtime).vendor }}

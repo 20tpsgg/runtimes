@@ -45,6 +45,7 @@ def build_matrix(catalog):
             "support": version["support"],
             "vendor": version["vendor"],
             "minimum_version": version.get("minimum_version", ""),
+            "java_options": "-XX:UseAVX=2" if version["major"] == 10 else "",
         }
         for version in catalog["versions"]
     ]}

@@ -21,6 +21,7 @@ ARG REVISION=local
 ARG JAVA_SUPPORT=eol
 ARG JDK_VENDOR
 ARG MINIMUM_JAVA_VERSION
+ARG JAVA_OPTIONS
 
 LABEL org.opencontainers.image.title="20tps Java runtime" \
       org.opencontainers.image.description="Archived Java runtime for compatibility requests; JDK security support has ended" \
@@ -33,6 +34,10 @@ LABEL org.opencontainers.image.title="20tps Java runtime" \
 
 ENV JAVA_HOME=/opt/java/openjdk \
     PATH=/opt/java/openjdk/bin:$PATH
+
+# Java 10 needs the AVX-512 workaround from JDK-8209735, including in JDK tools.
+# Keep it separate from the daemon's JAVA_TOOL_OPTIONS and injected agents.
+ENV _JAVA_OPTIONS=${JAVA_OPTIONS}
 
 COPY java/versions.json /usr/local/share/20tps/versions.json
 COPY --chmod=755 java/install-archive.sh /usr/local/bin/20tps-install-archive

@@ -23,7 +23,7 @@ jobs:
     outputs:
       matrix: ${{ steps.catalog.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Validate the complete Java catalog and create the build matrix
         id: catalog
         run: |
